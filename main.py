@@ -121,7 +121,8 @@ class Aether(Particle):
 
             if distance < 10 * self.SCALE:
                 #print(f"dist {particles.index(self)} {particles.index(particle)}")
-                self.links.append(idx)
+                if len(self.links) < 1:
+                    self.links.append(idx)
             else:
                 if idx in self.links:
                     self.links.remove(idx)
