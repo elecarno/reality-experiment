@@ -115,8 +115,9 @@ class Aether(Particle):
             total_fx += fx
             total_fy += fy
 
-        self.x_vel += total_fx * self.TIMESTEP
-        self.y_vel += total_fy * self.TIMESTEP
+        # a = F^2 * s
+        self.x_vel += math.pow(total_fx, 2) * self.size * self.TIMESTEP
+        self.y_vel += math.pow(total_fy, 2) * self.size * self.TIMESTEP
 
         vector_scale = 10
         pygame.draw.line(win, COL_RED, (x,y), (x+total_fx*vector_scale, y+total_fy*vector_scale), 2)
