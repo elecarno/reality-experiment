@@ -18,6 +18,7 @@ COL_YELLOW = (200, 200, 0)
 FONT = pygame.font.SysFont("couriernew", 16)
 
 class Particle:    
+    SCALE = 2
     TIMESTEP = 1 / 60
     RADIUS = 5
 
@@ -32,8 +33,8 @@ class Particle:
         self.y_vel = 0
 
     def draw(self, win):
-        x = self.x + WIDTH / 2
-        y = self.y + HEIGHT / 2
+        x = self.x * self.SCALE + WIDTH / 2
+        y = self.y * self.SCALE + HEIGHT / 2
 
         pygame.draw.circle(win, self.color, (x, y), self.RADIUS)
 
@@ -41,20 +42,20 @@ class Particle:
             updated_points = []
             for point in self.path:
                 x, y = point
-                x = x + WIDTH / 2
-                y = y + HEIGHT / 2
+                x = x * self.SCALE + WIDTH / 2
+                y = y * self.SCALE + HEIGHT / 2
                 updated_points.append((x, y))
 
-            if len(self.path) > 10:
+            if len(self.path) > 100:
                 self.path.pop(0)
 
             if show_trails:
                 pygame.draw.lines(win, self.color, False, updated_points, 2)
 
-        vector_scale = 0.2
+        vector_scale = 1
         if show_vectors:
-            pygame.draw.line(win, COL_RED, (x,y), (x, y+self.y_vel*vector_scale), 2)
-            pygame.draw.line(win, COL_GREEN, (x,y), (x+self.x_vel*vector_scale, y), 2)
+            #pygame.draw.line(win, COL_RED, (x,y), (x, y+self.y_vel*vector_scale), 2)
+            #pygame.draw.line(win, COL_GREEN, (x,y), (x+self.x_vel*vector_scale, y), 2)
             pygame.draw.line(win, COL_YELLOW, (x,y), (x+self.x_vel*vector_scale, y+self.y_vel*vector_scale), 2)
 
     def update_position(self):
@@ -62,8 +63,8 @@ class Particle:
         self.y += self.y_vel * self.TIMESTEP
 
         # window border collision
-        x = self.x + WIDTH / 2
-        y = self.y + HEIGHT / 2
+        x = self.x * self.SCALE + WIDTH / 2
+        y = self.y * self.SCALE + HEIGHT / 2
 
         if x <= 0 or x >= WIDTH:
             self.x_vel = -self.x_vel
@@ -81,8 +82,8 @@ class Aether(Particle):
         self.size = size
 
     def draw_size(self, win):
-        x = self.x + WIDTH / 2
-        y = self.y + HEIGHT / 2
+        x = self.x * self.SCALE + WIDTH / 2
+        y = self.y * self.SCALE + HEIGHT / 2
 
         size_text = FONT.render(f"{round(self.size, 1)}", 1, COL_WHITE)
         win.blit(size_text, (x - size_text.get_width()/2, y+10))
@@ -93,7 +94,7 @@ class Aether(Particle):
         distance_y = other_y - self.y
         distance = math.sqrt(distance_x ** 2 + distance_y ** 2)
 
-        force = -(1 / (self.size * math.sqrt(distance))) * 100
+        force = -(1 / (self.size * math.sqrt(distance)))
 
         theta = math.atan2(distance_y, distance_x)
         force_x = math.cos(theta) * force
@@ -101,18 +102,24 @@ class Aether(Particle):
 
         return force_x, force_y
 
-    def calculate_velocities(self, particles):
+    def calculate_velocities(self, win, particles):
+        x = self.x * self.SCALE + WIDTH / 2
+        y = self.y * self.SCALE + HEIGHT / 2
+
         total_fx = total_fy = 0
         for particle in particles:
             if self == particle:
                 continue
 
             fx, fy = self.avoidance(particle)
-            total_fx = fx
-            total_fy = fy
+            total_fx += fx
+            total_fy += fy
 
         self.x_vel += total_fx * self.TIMESTEP
         self.y_vel += total_fy * self.TIMESTEP
+
+        vector_scale = 10
+        pygame.draw.line(win, COL_RED, (x,y), (x+total_fx*vector_scale, y+total_fy*vector_scale), 2)
 
 
 def main():
@@ -127,9 +134,8 @@ def main():
     aether_particles = []
 
     for i in range(20):
-        fac = 2
-        x = random.randrange(-WIDTH/fac, WIDTH/fac)
-        y = random.randrange(-HEIGHT/fac, HEIGHT/fac)
+        x = random.randrange(-20, 20)
+        y = random.randrange(-20, 20)
         size = random.uniform(0.1, 1)
         aether = Aether(x, y, COL_WHITE, size)
         aether_particles.append(aether)
@@ -149,7 +155,7 @@ def main():
 
 
         for aether in aether_particles:
-            aether.calculate_velocities(aether_particles)
+            aether.calculate_velocities(WIN, aether_particles)
             aether.update_position()
             aether.draw(WIN)
             aether.draw_size(WIN)
