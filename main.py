@@ -123,9 +123,9 @@ class Aether(Particle):
                 #print(f"dist {particles.index(self)} {particles.index(particle)}")
                 if len(self.links) < 1:
                     self.links.append(idx)
-            else:
-                if idx in self.links:
-                    self.links.remove(idx)
+            # else:
+            #     if idx in self.links:
+            #         self.links.remove(idx)
 
         for linked_p in self.links:
             px = particles[linked_p].x * self.SCALE + WIDTH / 2
