@@ -86,7 +86,7 @@ class Aether(Particle):
         x = self.x * self.SCALE + WIDTH / 2
         y = self.y * self.SCALE + HEIGHT / 2
 
-        size_text = FONT.render(f"{round(self.size, 1)}", 1, COL_WHITE)
+        size_text = FONT.render(f"{round(self.size, 2)}", 1, COL_WHITE)
         win.blit(size_text, (x - size_text.get_width()/2, y+10))
 
     def avoidance(self, other):
@@ -165,7 +165,7 @@ def main():
 
     aether_particles = []
 
-    for i in range(20):
+    for i in range(15):
         x = random.randrange(-60, 60)
         y = random.randrange(-60, 60)
         size = random.uniform(0.1, 1)
