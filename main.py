@@ -80,6 +80,7 @@ class Aether(Particle):
     def __init__(self, x, y, color, size):
         super().__init__(x, y, color)
         self.size = size
+        self.links = []
 
     def draw_size(self, win):
         x = self.x * self.SCALE + WIDTH / 2
@@ -94,6 +95,7 @@ class Aether(Particle):
         distance_y = other_y - self.y
         distance = math.sqrt(distance_x ** 2 + distance_y ** 2)
 
+        # avoidance force
         force = -(1 / (self.size * math.sqrt(distance)))
 
         theta = math.atan2(distance_y, distance_x)
@@ -101,6 +103,34 @@ class Aether(Particle):
         force_y = math.sin(theta) * force
 
         return force_x, force_y
+
+    def check_for_chaining(self, win, particles):
+        x = self.x * self.SCALE + WIDTH / 2
+        y = self.y * self.SCALE + HEIGHT / 2
+
+        for particle in particles:
+            if self == particle:
+                continue
+
+            other_x, other_y = particle.x, particle.y
+            distance_x = other_x - self.x
+            distance_y = other_y - self.y
+            distance = math.sqrt(distance_x ** 2 + distance_y ** 2)
+            
+            idx = particles.index(particle)
+
+            if distance < 10 * self.SCALE:
+                #print(f"dist {particles.index(self)} {particles.index(particle)}")
+                self.links.append(idx)
+            else:
+                if idx in self.links:
+                    self.links.remove(idx)
+
+        for linked_p in self.links:
+            px = particles[linked_p].x * self.SCALE + WIDTH / 2
+            py = particles[linked_p].y * self.SCALE + HEIGHT / 2
+
+            pygame.draw.line(win, COL_GREEN, (x,y), (px, py), 4)
 
     def calculate_velocities(self, win, particles):
         x = self.x * self.SCALE + WIDTH / 2
@@ -135,8 +165,8 @@ def main():
     aether_particles = []
 
     for i in range(20):
-        x = random.randrange(-20, 20)
-        y = random.randrange(-20, 20)
+        x = random.randrange(-60, 60)
+        y = random.randrange(-60, 60)
         size = random.uniform(0.1, 1)
         aether = Aether(x, y, COL_WHITE, size)
         aether_particles.append(aether)
@@ -156,6 +186,7 @@ def main():
 
 
         for aether in aether_particles:
+            aether.check_for_chaining(WIN, aether_particles)
             aether.calculate_velocities(WIN, aether_particles)
             aether.update_position()
             aether.draw(WIN)
