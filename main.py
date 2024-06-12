@@ -86,7 +86,9 @@ class Aether(Particle):
         x = self.x * self.SCALE + WIDTH / 2
         y = self.y * self.SCALE + HEIGHT / 2
 
-        size_text = FONT.render(f"{round(self.size, 2)}", 1, COL_WHITE)
+        vel = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
+
+        size_text = FONT.render(f"{round(vel, 2)}", 1, COL_WHITE)
         win.blit(size_text, (x - size_text.get_width()/2, y+10))
 
     def avoidance(self, other):
@@ -119,7 +121,9 @@ class Aether(Particle):
             
             idx = particles.index(particle)
 
-            if distance < 10 * self.SCALE:
+            vel = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
+            threshold = math.pow(self.size, vel) + (1/self.size)
+            if distance < threshold * self.SCALE:
                 #print(f"dist {particles.index(self)} {particles.index(particle)}")
                 if len(self.links) < 1:
                     self.links.append(idx)
@@ -166,8 +170,9 @@ def main():
     aether_particles = []
 
     for i in range(15):
-        x = random.randrange(-60, 60)
-        y = random.randrange(-60, 60)
+        units = 80
+        x = random.randrange(-units, units)
+        y = random.randrange(-units, units)
         size = random.uniform(0.1, 1)
         aether = Aether(x, y, COL_WHITE, size)
         aether_particles.append(aether)
