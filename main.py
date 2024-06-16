@@ -9,6 +9,7 @@ WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("reality-experiment-dev")
 
 COL_GRAY =  (25, 25, 25)
+COL_LIGHT_GRAY = (100, 100, 100)
 COL_WHITE = (220, 220, 220)
 COL_RED =   (200, 0, 0)
 COL_GREEN = (0, 200, 0)
@@ -17,8 +18,33 @@ COL_YELLOW = (200, 200, 0)
 
 FONT = pygame.font.SysFont("couriernew", 16)
 
+def draw_gradient_line(win, start_color, end_color, start_pos, end_pos, width):
+    def interpolate_color(start_color, end_color, factor):
+        return (
+            start_color[0] + (end_color[0] - start_color[0]) * factor,
+            start_color[1] + (end_color[1] - start_color[1]) * factor,
+            start_color[2] + (end_color[2] - start_color[2]) * factor
+        )
+
+    x1, y1 = start_pos
+    x2, y2 = end_pos
+    distance = math.hypot(x2 - x1, y2 - y1)
+    steps = int(distance)  # The number of segments
+    if steps == 0:
+        return
+    
+    dx = (x2 - x1) / steps
+    dy = (y2 - y1) / steps
+
+    for i in range(steps):
+        factor = i / steps
+        color = interpolate_color(start_color, end_color, factor)
+        start_segment = (x1 + dx * i, y1 + dy * i)
+        end_segment = (x1 + dx * (i + 1), y1 + dy * (i + 1))
+        pygame.draw.line(win, color, start_segment, end_segment, width)
+
 class Particle:    
-    SCALE = 2
+    SCALE = 1
     TIMESTEP = 1 / 60
     RADIUS = 5
 
@@ -86,9 +112,9 @@ class Aether(Particle):
         x = self.x * self.SCALE + WIDTH / 2
         y = self.y * self.SCALE + HEIGHT / 2
 
-        vel = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
+        #vel = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
 
-        size_text = FONT.render(f"{round(vel, 2)}", 1, COL_WHITE)
+        size_text = FONT.render(f"{round(self.size, 2)}", 1, COL_WHITE)
         win.blit(size_text, (x - size_text.get_width()/2, y+10))
 
     def avoidance(self, other):
@@ -99,6 +125,33 @@ class Aether(Particle):
 
         # avoidance force
         force = -(1 / (self.size * math.sqrt(distance)))
+
+        theta = math.atan2(distance_y, distance_x)
+        force_x = math.cos(theta) * force
+        force_y = math.sin(theta) * force
+
+        return force_x, force_y
+
+    def chained_force(self, other, particles):
+        other_x, other_y = other.x, other.y
+        distance_x = other_x - self.x
+        distance_y = other_y - self.y
+        distance = math.sqrt(distance_x ** 2 + distance_y ** 2)
+
+        total_fx_a = total_fy_a = 0
+        for particle in particles:
+            if self == particle:
+                continue
+
+            fx_a, fy_a = self.avoidance(particle)
+            total_fx_a += fx_a
+            total_fy_a += fy_a
+
+        total_fa = math.sqrt(total_fx_a ** 2 + total_fy_a ** 2)
+        # force_x = math.log(distance_x)
+        # force_y = math.log(distance_y)
+
+        force = (math.log(distance) + total_fa)/self.size
 
         theta = math.atan2(distance_y, distance_x)
         force_x = math.cos(theta) * force
@@ -136,6 +189,7 @@ class Aether(Particle):
             py = particles[linked_p].y * self.SCALE + HEIGHT / 2
 
             pygame.draw.line(win, COL_GREEN, (x,y), (px, py), 4)
+            draw_gradient_line(win, COL_GREEN, COL_BLUE, (x, y), (px, py), 4)
 
     def calculate_velocities(self, win, particles):
         x = self.x * self.SCALE + WIDTH / 2
@@ -146,9 +200,14 @@ class Aether(Particle):
             if self == particle:
                 continue
 
-            fx, fy = self.avoidance(particle)
-            total_fx += fx
-            total_fy += fy
+            fx_a, fy_a = self.avoidance(particle)
+            total_fx += fx_a
+            total_fy += fy_a
+
+        if len(self.links) > 0:
+            fx_c, fy_c = self.chained_force(particles[self.links[0]], particles)
+            total_fx += fx_c
+            total_fy += fy_c
 
         # a = F^2 * s
         self.x_vel += math.pow(total_fx, 2) * self.size * self.TIMESTEP
